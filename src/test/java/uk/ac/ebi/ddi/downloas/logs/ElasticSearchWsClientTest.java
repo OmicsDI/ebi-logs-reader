@@ -8,8 +8,6 @@ import org.junit.Test;
 import java.time.LocalDate;
 import java.util.Map;
 
-import static org.junit.Assert.*;
-
 /**
  * This code is licensed under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
@@ -29,8 +27,8 @@ public class ElasticSearchWsClientTest {
      * This test is really slow should be used only to test locally and it needs more than 12G memory.
      */
     @Test
-    @Ignore
     public void getDataDownloads() {
+        elasticSearchClient.setParallel(true);
         Map<String, Multiset<String>> prideDownloads = elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
         Assert.assertTrue(prideDownloads.size() > 0);
     }

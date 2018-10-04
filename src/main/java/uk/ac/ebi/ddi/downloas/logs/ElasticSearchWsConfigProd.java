@@ -73,9 +73,9 @@ public class ElasticSearchWsConfigProd {
         {
             // Initialise all sub-maps
             for (Protocol protocol : Protocol.values()) {
-                put(protocol, new HashMap<DB, Map<RegexType, String>>());
+                put(protocol, new HashMap<>());
                 for (DB db : DB.values()) {
-                    get(protocol).put(db, new HashMap<RegexType, String>());
+                    get(protocol).put(db, new HashMap<>());
                 }
             }
             for (Protocol protocol : Protocol.values()) {

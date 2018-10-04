@@ -2,7 +2,6 @@ package uk.ac.ebi.ddi.downloas.logs;
 
 import com.google.common.collect.Multiset;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Map;
 

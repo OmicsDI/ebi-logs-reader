@@ -24,12 +24,11 @@ public class ElasticSearchTest {
     private static final org.apache.log4j.Logger log = Logger.getLogger(ElasticSearchTest.class);
 
     private static final ElasticSearchService  elasticSearchInstance = ElasticSearchService.getInstance();
-    private static Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>> dbToAccessionToPeriodToFileName;
 
 
     @Test
     public void displayResults() {
-        dbToAccessionToPeriodToFileName = elasticSearchInstance.getResults(100,100,1000, LocalDate.now());
+        Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>> dbToAccessionToPeriodToFileName = elasticSearchInstance.getResults(100, 100, 1000, LocalDate.now());
 
         for (ElasticSearchWsConfigProd.DB db : dbToAccessionToPeriodToFileName.keySet()) {
             for (String accession : dbToAccessionToPeriodToFileName.get(db).keySet()) {
