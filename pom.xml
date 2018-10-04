@@ -1,0 +1,161 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>uk.ac.ebi.ddi.maven</groupId>
+        <artifactId>ddi-base-master</artifactId>
+        <version>1.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>uk.ac.ebi.ddi</groupId>
+    <artifactId>ddi-ebi-logs</artifactId>
+    <version>1.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <organization>
+        <name>European Bioinformatics Institute</name>
+        <url>http://www.ebi.ac.uk</url>
+    </organization>
+
+    <properties>
+        <org.cloudfoundry-version>0.8.0</org.cloudfoundry-version>
+        <ehcache-core.version>2.5.1</ehcache-core.version>
+        <aspectjrt.version>1.6.10</aspectjrt.version>
+        <standard.version>1.1.2</standard.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.7</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.9.7</version>
+        </dependency>
+
+        <!--
+        https://mvnrepository.com/artifact/com.google.collections/google-collections
+       -->
+        <dependency>
+            <groupId>com.google.collections</groupId>
+            <artifactId>google-collections</artifactId>
+            <version>1.0-rc2</version>
+        </dependency>
+
+        <!-- Log System -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <!--
+        Ver 6.4.0 of
+        elasticsearch-rest-high-level-client-6.4.0.jar in
+        https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-high-level-client
+        is missing RestHighLevelClient.class
+        (c.f. https://github.com/elastic/elasticsearch/pull/32731)
+        I had to download it manually from
+        https://jar-download.com/?search_box=elasticsearch-rest-high-level-client - into ~/.m2/repository/org/elasticsearch/client/elasticsearch-rest-high-level-client/6.4.0/)
+       -->
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>6.4.0</version>
+            <!--
+            TODO: Uncomment when https://mvnrepository.com/artifact/org.elasticsearch.client/elasticsearch-rest-high-level-client
+                        has been fixed - c.f. above <type>pom</type>
+           -->
+        </dependency>
+    </dependencies>
+    <build>
+        <finalName>ddi-ebi-logs</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.7.2</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/services/*.java</exclude>
+                        <exclude>uk.ac.ebi.ddi.annotation.IntersectionTest</exclude>
+                    </excludes>
+                    <skipTests>true</skipTests>
+                    <junitArtifactName>junit:junit</junitArtifactName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <repositories>
+        <repository>
+            <id>nexus-ebi-release-repo</id>
+            <url>
+                http://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-repo/
+            </url>
+        </repository>
+        <repository>
+            <id>nexus-ebi-snapshot-repo</id>
+            <url>
+                http://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-snapshots/
+            </url>
+        </repository>
+    </repositories>
+    <distributionManagement>
+        <!--  EBI repo  -->
+        <repository>
+            <id>nexus-ebi-repo</id>
+            <url>
+                http://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-repo/
+            </url>
+        </repository>
+        <!--  EBI SNAPSHOT repo  -->
+        <snapshotRepository>
+            <id>nexus-ebi-repo-snapshots</id>
+            <url>
+                http://www.ebi.ac.uk/Tools/maven/repos/content/groups/ebi-snapshots/
+            </url>
+        </snapshotRepository>
+    </distributionManagement>
+</project>
