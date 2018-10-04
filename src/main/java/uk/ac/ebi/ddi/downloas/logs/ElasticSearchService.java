@@ -33,21 +33,6 @@ public class ElasticSearchService {
         return instance;
     }
 
-//    /**
-//     * Add data downloads-related additional fields to dataset
-//     *
-//     * @param db
-//     * @param dataset
-//     * @throws IOException
-//     */
-//    public void annotateDataDownloads(String db, Dataset dataset, LocalDate yearLocalDate) {
-//        Map<String, Multiset<String>> periodToFileNames = elasticSearchClient.getDataDownloads(DB.valueOf(db), dataset.getAccession(), yearLocalDate);
-//        for (String period : periodToFileNames.keySet()) {
-//            // Period: yyyy/mm
-//            String downloadCount = Integer.toString(periodToFileNames.get(period).size());
-//            // TODO: Populate a new data downloads field in dataset
-//        }
-//    }
 
     /**
      * An auxiliary method used for testing
