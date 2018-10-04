@@ -46,8 +46,8 @@ public class ElasticSearchWsClient {
     private ElasticSearchWsConfigProd config;
 
     // Hashmap for storing results aggregated by period (yyyy/mm)
-    private static final Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>> dbToAccessionToPeriodToFileName =
-            new HashMap<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>>() {
+    private static final Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> dbToAccessionToPeriodToAnonymisedIPAddressToFileName =
+            new HashMap<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>>() {
                 {
                     // Initialise all sub-maps
                     for (ElasticSearchWsConfigProd.DB db : ElasticSearchWsConfigProd.DB.values()) {
@@ -86,22 +86,23 @@ public class ElasticSearchWsClient {
      * @param accession
      * @param yearLocalDate
      * @return For a given database, dataset accession and a year (represented by yearLocalDate),
-     * return a Map between each Period (yyyy/mm) and a Multiset of file names/download counts
+     * return a Map between each Period (yyyy/mm) and a map of anonymised IP addresses pointing Multisets of their corresponding file names/download counts
      */
-    public Map<String, Multiset<String>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession, LocalDate yearLocalDate) {
-        Map<String, Multiset<String>> periodToFileNames = null;
+    public Map<String, Map<String, Multiset<String>>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession, LocalDate yearLocalDate) {
+        Map<String, Map<String, Multiset<String>>> anonymisedIPAddressToFileNames = null;
         retrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
-        if (dbToAccessionToPeriodToFileName.containsKey(db)) {
-            Map<String, Map<String, Multiset<String>>> accessionToPeriodToFileName = dbToAccessionToPeriodToFileName.get(db);
-            if (accessionToPeriodToFileName.containsKey(accession)) {
-                periodToFileNames = dbToAccessionToPeriodToFileName.get(db).get(accession);
+        if (dbToAccessionToPeriodToAnonymisedIPAddressToFileName.containsKey(db)) {
+            Map<String, Map<String, Map<String, Multiset<String>>>> accessionToPeriodToAnonymisedIPAddressToFileName =
+                    dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db);
+            if (accessionToPeriodToAnonymisedIPAddressToFileName.containsKey(accession)) {
+                anonymisedIPAddressToFileNames = dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession);
             } else {
                 log.warn("No accession: '" + accession + "' could be found in the data retrieved for db: '" + db.toString() + "'from ElasticSearch");
             }
         } else {
             log.warn("No db: '" + db.toString() + "' could be found in the data retrieved from ElasticSearch");
         }
-        return periodToFileNames;
+        return anonymisedIPAddressToFileNames;
     }
 
     /**
@@ -109,8 +110,8 @@ public class ElasticSearchWsClient {
      */
     private boolean resultsReady() {
         boolean resultsReady = true;
-        for (ElasticSearchWsConfigProd.DB db : dbToAccessionToPeriodToFileName.keySet()) {
-            resultsReady = dbToAccessionToPeriodToFileName.get(db).isEmpty();
+        for (ElasticSearchWsConfigProd.DB db : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.keySet()) {
+            resultsReady = dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).isEmpty();
             if (!resultsReady)
                 break;
         }
@@ -224,18 +225,33 @@ public class ElasticSearchWsClient {
      * @param period
      * @param fileName
      */
-    private static void addToResults(ElasticSearchWsConfigProd.DB db, String accession, final String period, final String fileName) {
-        if (!dbToAccessionToPeriodToFileName.get(db).containsKey(accession)) {
-            Map<String, Multiset<String>> dateToFileNames = new HashMap<String, Multiset<String>>();
+    private static void addToResults(ElasticSearchWsConfigProd.DB db, String accession, String period, String anonymisedIPAddress, String fileName) {
+        if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).containsKey(accession)) {
+            // We haven't seen this accession before
+            Map<String, Map<String, Multiset<String>>> periodToAnonymisedIPAddressToFileNames = new HashMap<>();
+            Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
             // N.B. We use Multiset to maintain counts per individual download file
-            dateToFileNames.put(period, HashMultiset.<String>create());
-            dateToFileNames.get(period).add(fileName);
-            dbToAccessionToPeriodToFileName.get(db).put(accession, dateToFileNames);
+            anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
+            anonymisedIPAddressToFileNames.get(anonymisedIPAddress).add(fileName);
+            periodToAnonymisedIPAddressToFileNames.put(period, anonymisedIPAddressToFileNames);
+            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).put(accession, periodToAnonymisedIPAddressToFileNames);
         } else {
-            if (!dbToAccessionToPeriodToFileName.get(db).get(accession).containsKey(period)) {
-                dbToAccessionToPeriodToFileName.get(db).get(accession).put(period, HashMultiset.<String>create());
+            // We've seen this accession before
+            if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).containsKey(period)) {
+                // We haven't seen this period for this accession before
+                Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
+                anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
+                dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(period, anonymisedIPAddressToFileNames);
+            } else {
+                // We have seen this period for this accession before
+                if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).containsKey(anonymisedIPAddress)) {
+                    // We haven't seen this anonymisedIPAddress for that accession and period before
+                    Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
+                    anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
+                    dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(period, anonymisedIPAddressToFileNames);
+                }
             }
-            dbToAccessionToPeriodToFileName.get(db).get(accession).get(period).add(fileName);
+            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).get(anonymisedIPAddress).add(fileName);
         }
     }
 
@@ -247,9 +263,9 @@ public class ElasticSearchWsClient {
      * @param yearLocalDate
      * @return
      */
-    public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>> getResults(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
+    public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> getResults(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
         retrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits, yearLocalDate);
-        return dbToAccessionToPeriodToFileName;
+        return dbToAccessionToPeriodToAnonymisedIPAddressToFileName;
     }
 
     /**
@@ -262,7 +278,7 @@ public class ElasticSearchWsClient {
         for (SearchHit hit : searchHits) {
             Map k2v = hit.getSourceAsMap();
             String source = k2v.get("source").toString();
-            // Anonymised IP address: String uhost = k2v.get("uhost").toString();
+            String anonymisedIPAddress = k2v.get("uhost").toString();  // Anonymised IP address
             String filePath = k2v.get("file_name").toString();
             long fileSize = Long.parseLong(k2v.get("file_size").toString());
             // Ignore files with 0 download size
@@ -289,7 +305,7 @@ public class ElasticSearchWsClient {
                     if (accession != null) {
                         String yearMonth = getYearMonth(source);
                         if (yearMonth != null) {
-                            addToResults(db, accession, yearMonth, fileName);
+                            addToResults(db, accession, yearMonth, anonymisedIPAddress, fileName);
                             break;
                         }
                     }

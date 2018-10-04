@@ -64,7 +64,7 @@ public class ElasticSearchWsConfigProd {
     // N.B. BioModels, EGA and ENA have been excluded from the first round of prototyping, due to additional complications in
     // retrieval of dataset accessions (WIP)
     public enum DB {
-        ArrayExpress, Pride, ExpressionAtlas, EVA
+        ArrayExpress, Pride, ExpressionAtlas, EVA, Metabolights
     }
 
     // Hashmap for storing regexes
@@ -100,10 +100,9 @@ public class ElasticSearchWsConfigProd {
                 get(protocol).get(DB.ExpressionAtlas).put(RegexType.negative,
                         "/ontology/|/atlas/software/|/gsa/|/atlas/curation/|zoomage_reports|bioentity_properties|atlas/experiments/.*\\.(xml|json|tar\\.gz)");
 
-                // TODO: Uncomment once apparent data download record duplications have been clarified with Metabolights team
-//                get(protocol).get(DB.Metabolights).put(RegexType.accession, METABOLIGHTS_ACCESSION_REGEX);
-//                get(protocol).get(DB.Metabolights).put(RegexType.positive, "/metabolights/studies/public/" + METABOLIGHTS_ACCESSION_REGEX);
-//                get(protocol).get(DB.Metabolights).put(RegexType.negative, null);
+                get(protocol).get(DB.Metabolights).put(RegexType.accession, METABOLIGHTS_ACCESSION_REGEX);
+                get(protocol).get(DB.Metabolights).put(RegexType.positive, "/metabolights/studies/public/" + METABOLIGHTS_ACCESSION_REGEX);
+                get(protocol).get(DB.Metabolights).put(RegexType.negative, null);
 
                 get(protocol).get(DB.Pride).put(RegexType.accession, PRIDE_ACCESSION_REGEX);
                 get(protocol).get(DB.Pride).put(RegexType.positive, "/pride/data/archive/\\d{4}/\\d{2}");

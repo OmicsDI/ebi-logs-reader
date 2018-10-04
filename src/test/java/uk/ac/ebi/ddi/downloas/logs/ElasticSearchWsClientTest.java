@@ -31,7 +31,8 @@ public class ElasticSearchWsClientTest {
     @Test
     @Ignore
     public void getDataDownloads() {
-        Map<String, Multiset<String>> prideDownloads = elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
+        Map<String, Map<String, Multiset<String>>> prideDownloads =
+                elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
         Assert.assertTrue(prideDownloads.size() > 0);
     }
 
