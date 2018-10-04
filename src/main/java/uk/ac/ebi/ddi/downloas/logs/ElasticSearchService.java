@@ -35,13 +35,15 @@ public class ElasticSearchService {
 
     /**
      * An auxiliary method used for testing
+     *
      * @param batchSize
      * @param reportingFrequency
      * @param maxHits
      * @param yearLocalDate
-     * @return  the Map of all ftp/Aspera data downloads results for year stored in yearLocalDate
+     * @return the Map of all ftp/Aspera data downloads results for year stored in yearLocalDate
      */
-    public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>> getResults(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
+    public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> getResults(Integer batchSize, Integer
+            reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
         return elasticSearchClient.getResults(batchSize, reportingFrequency, maxHits, yearLocalDate);
     }
 }

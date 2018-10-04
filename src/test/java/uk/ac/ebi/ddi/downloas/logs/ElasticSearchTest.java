@@ -24,19 +24,20 @@ public class ElasticSearchTest {
     private static final org.apache.log4j.Logger log = Logger.getLogger(ElasticSearchTest.class);
 
     private static final ElasticSearchService  elasticSearchInstance = ElasticSearchService.getInstance();
-
+    private static Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> dbToAccessionToPeriodToAnonymisedIPAddressToFileName;
 
     @Test
     public void displayResults() {
-        Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Multiset<String>>>> dbToAccessionToPeriodToFileName = elasticSearchInstance.getResults(100, 100, 1000, LocalDate.now());
+        dbToAccessionToPeriodToAnonymisedIPAddressToFileName = elasticSearchInstance.getResults(100,100,1000, LocalDate.now());
 
-        for (ElasticSearchWsConfigProd.DB db : dbToAccessionToPeriodToFileName.keySet()) {
-            for (String accession : dbToAccessionToPeriodToFileName.get(db).keySet()) {
-                for (String period : dbToAccessionToPeriodToFileName.get(db).get(accession).keySet()) {
-                    for (Multiset.Entry entry : dbToAccessionToPeriodToFileName.get(db).get(accession).get(period).entrySet()) {
-                        log.info(db.toString() + "\t" + accession + "\t" + period + "\t" + entry.getElement() + "\t" + entry.getCount());
+        for (ElasticSearchWsConfigProd.DB db : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.keySet()) {
+            for (String accession : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).keySet()) {
+                for (String period : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).keySet()) {
+                    for (String anonymisedIPAddress : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).keySet()) {
+                        for (Multiset.Entry entry : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).get(anonymisedIPAddress).entrySet()) {
+                            System.out.println(db.toString() + "\t" + accession + "\t" + period + "\t" + anonymisedIPAddress + "\t" + entry.getElement() + "\t" + entry.getCount());
+                        }
                     }
-
                 }
             }
         }
