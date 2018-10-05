@@ -95,6 +95,7 @@ public class ElasticSearchWsClient {
 
     public Map<String, Map<String, Multiset<String>>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession, LocalDate yearLocalDate) {
         Map<String, Map<String, Multiset<String>>> anonymisedIPAddressToFileNames = null;
+        enaWsClient.populateCache();
         if(parallel)
             parallelRetrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
         else

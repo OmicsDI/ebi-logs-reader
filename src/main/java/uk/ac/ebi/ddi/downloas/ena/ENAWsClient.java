@@ -36,7 +36,7 @@ public class ENAWsClient extends WsClient {
     /**
      * Populate enaAccessionToProject cache if it has not yet been populated
      */
-    private void getCache() {
+    public void populateCache() {
         if (cacheReady())
             return;
         long startTime = System.currentTimeMillis();
@@ -73,10 +73,9 @@ public class ENAWsClient extends WsClient {
 
     /**
      * @param enaAccession
-     * @return
+     * @return ENA project accession corresponding to enaAccession
      */
     public String getProjectAccession(String enaAccession) {
-        getCache();
         if (enaAccession != null && enaAccession.length() > 0) {
             if (enaAccessionToProject.containsKey(enaAccession)) {
                 return enaAccessionToProject.get(enaAccession);
@@ -105,8 +104,12 @@ public class ENAWsClient extends WsClient {
                                 enaAccession + ENAWsConfigProd.getLookupPostfix(accTypeFound) : enaAccession);
                 log.debug(url);
 
-                String projectAccession = this.restTemplate.getForObject(url, ENAProjectAccessionMapping[].class)[0].getProjectAccession();
-                enaAccessionToProject.put(enaAccession, projectAccession);
+                String projectAccession = null;
+                ENAProjectAccessionMapping[] results = this.restTemplate.getForObject(url, ENAProjectAccessionMapping[].class);
+                if (results != null && results.length > 0) {
+                    projectAccession = this.restTemplate.getForObject(url, ENAProjectAccessionMapping[].class)[0].getProjectAccession();
+                    enaAccessionToProject.put(enaAccession, projectAccession);
+                }
                 return projectAccession;
             }
         }
