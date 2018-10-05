@@ -14,6 +14,7 @@ The name of the databases can be found here:
 |  ArrayExpress    | www.ebi.ac.uk/arrayexpress   |
 |  EVA             | www.ebi.ac.uk/eva            |
 | Metabolights     | www.ebi.ac.uk/metabolights   |
+| ENA              | www.ebi.ac.uk/ena            |
 
 
 Code:
