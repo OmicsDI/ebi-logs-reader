@@ -301,7 +301,7 @@ public class ElasticSearchWsClient {
                 omicsDIAccession = esAccession;
             }
         } else {
-            log.error("ERROR: Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
+            log.debug("Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
         }
         return new Tuple<>(omicsDIAccession, fileName);
     }
