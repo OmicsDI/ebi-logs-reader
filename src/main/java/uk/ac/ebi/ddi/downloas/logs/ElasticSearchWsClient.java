@@ -95,6 +95,7 @@ public class ElasticSearchWsClient {
 
     public Map<String, Map<String, Multiset<String>>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession, LocalDate yearLocalDate) {
         Map<String, Map<String, Multiset<String>>> anonymisedIPAddressToFileNames = null;
+        enaWsClient.populateCache();
         if(parallel)
             parallelRetrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
         else
@@ -300,7 +301,7 @@ public class ElasticSearchWsClient {
                 omicsDIAccession = esAccession;
             }
         } else {
-            log.error("ERROR: Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
+            log.debug("Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
         }
         return new Tuple<>(omicsDIAccession, fileName);
     }
