@@ -25,6 +25,8 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.search.slice.SliceBuilder;
+import uk.ac.ebi.ddi.downloas.ena.ENAWsClient;
+import uk.ac.ebi.ddi.downloas.ena.ENAWsConfigProd;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -45,6 +47,9 @@ public class ElasticSearchWsClient {
     private static final org.apache.log4j.Logger log = Logger.getLogger(ElasticSearchWsClient.class);
 
     private RestHighLevelClient restHighLevelClient;
+    // Client used for retrieving ENA project accessions corresponding to ENA accessions retrieved from ElasticSearch
+    private ENAWsClient enaWsClient = new ENAWsClient(new ENAWsConfigProd());
+    private ElasticSearchWsConfigProd config;
 
     public void setParallel(boolean parallel) {
         this.parallel = parallel;
@@ -157,7 +162,7 @@ public class ElasticSearchWsClient {
                     SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
                     String scrollId = searchResponse.getScrollId();
                     SearchHit[] searchHits = searchResponse.getHits().getHits();
-                    getValuesFromHits(searchHits, protocol);
+                    getValuesFromHits(searchHits, protocol, enaWsClient);
 
                     // Retrieve all the relevant documents
                     int searchHitsCount = 0;
@@ -167,7 +172,7 @@ public class ElasticSearchWsClient {
                         SearchResponse searchScrollResponse = restHighLevelClient.scroll(scrollRequest, RequestOptions.DEFAULT);
                         scrollId = searchScrollResponse.getScrollId();
                         searchHits = searchScrollResponse.getHits().getHits();
-                        getValuesFromHits(searchHits, protocol);
+                        getValuesFromHits(searchHits, protocol, enaWsClient);
                         searchHitsCount += batchSize;
                         if ((searchHitsCount % reportingFrequency) == 0) {
                             log.info(searchHitsCount + "");
@@ -227,7 +232,7 @@ public class ElasticSearchWsClient {
                                 SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
                                 String scrollId = searchResponse.getScrollId();
                                 SearchHit[] searchHits = searchResponse.getHits().getHits();
-                                getValuesFromHits(searchHits, protocol);
+                                getValuesFromHits(searchHits, protocol, enaWsClient);
 
                                 // Retrieve all the relevant documents
                                 int searchHitsCount = 0;
@@ -238,7 +243,7 @@ public class ElasticSearchWsClient {
                                     SearchResponse searchScrollResponse = restHighLevelClient.scroll(scrollRequest, RequestOptions.DEFAULT);
                                     scrollId = searchScrollResponse.getScrollId();
                                     searchHits = searchScrollResponse.getHits().getHits();
-                                    getValuesFromHits(searchHits, protocol);
+                                    getValuesFromHits(searchHits, protocol, enaWsClient);
                                     searchHitsCount += finalBatchSize;
                                     if ((searchHitsCount % finalReportingFrequency) == 0) {
                                         log.info(protocol + " " + searchHitsCount + "");
@@ -278,7 +283,7 @@ public class ElasticSearchWsClient {
      * @param accessionRegex
      * @return A tuple first accession and then the name of the file being downloaded
      */
-    private static Tuple<String, String> getAccessionAndFileName(ElasticSearchWsConfigProd.DB db, String filePath, String accessionRegex) {
+    private static Tuple<String, String> getAccessionAndFileName(ElasticSearchWsConfigProd.DB db, String filePath, String accessionRegex, ENAWsClient enaWsClient) {
         // c.f. [/\\.] below for retrieval of e.g. /GCA_002757455 from /GCA_002757455.1_
         Matcher matcher = Pattern.compile("/" + accessionRegex + "[/\\.]").matcher(filePath);
         boolean b = matcher.find();
@@ -286,13 +291,18 @@ public class ElasticSearchWsClient {
         String[] arr = filePath.split("/");
         String fileName = arr[arr.length - 1];
         // Retrieve accession
-        String accession = null;
+        String omicsDIAccession = null;
         if (b) {
-            accession = matcher.group(0).replaceAll("^/|[_/]+$", "");
+            String esAccession = matcher.group(0).replaceAll("^/|[_/]+$", "");
+            if (db == ElasticSearchWsConfigProd.DB.ENA) {
+                omicsDIAccession =  enaWsClient.getProjectAccession(esAccession);
+            } else {
+                omicsDIAccession = esAccession;
+            }
         } else {
             log.error("ERROR: Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
         }
-        return new Tuple<>(accession, fileName);
+        return new Tuple<>(omicsDIAccession, fileName);
     }
 
     /**
@@ -358,7 +368,7 @@ public class ElasticSearchWsClient {
      * @param searchHits
      * @param protocol
      */
-    private static void getValuesFromHits(SearchHit[] searchHits, ElasticSearchWsConfigProd.Protocol protocol) {
+    private static void getValuesFromHits(SearchHit[] searchHits, ElasticSearchWsConfigProd.Protocol protocol, ENAWsClient enaWsClient) {
         for (SearchHit hit : searchHits) {
             Map k2v = hit.getSourceAsMap();
             String source = k2v.get("source").toString();
@@ -383,7 +393,7 @@ public class ElasticSearchWsClient {
                     }
                 }
                 if (resource != null) {
-                    Tuple<String, String> accessionFileName = getAccessionAndFileName(db, filePath, typeToRegex.get(ElasticSearchWsConfigProd.RegexType.accession));
+                    Tuple<String, String> accessionFileName = getAccessionAndFileName(db, filePath, typeToRegex.get(ElasticSearchWsConfigProd.RegexType.accession), enaWsClient);
                     String accession = accessionFileName.v1();
                     String fileName = accessionFileName.v2();
                     if (accession != null) {

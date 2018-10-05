@@ -59,10 +59,10 @@ public class ElasticSearchWsConfigProd {
     // EBI resources in OmicsDI:
     // N.B. these values need to match the corresponding ddi.common.*.database.name field values
     // in src/main/resources/prop/common.properties inside index-pipeline
-    // N.B. BioModels, EGA and ENA have been excluded from the first round of prototyping, due to additional complications in
+    // N.B. BioModels and EGA have been excluded from the first round of prototyping, due to additional complications in
     // retrieval of dataset accessions (WIP)
     public enum DB {
-        ArrayExpress, Pride, ExpressionAtlas, EVA, Metabolights
+        ArrayExpress, Pride, ExpressionAtlas, EVA, Metabolights, ENA
     }
 
     public ElasticSearchWsConfigProd(Integer port, String host, String username, String password) {
@@ -125,11 +125,9 @@ public class ElasticSearchWsConfigProd {
 //                get(protocol).get(DB.EGA).put(RegexType.positive, "/ega/");
 //                get(protocol).get(DB.EGA).put(RegexType.negative, "/ega_\\w+_prod_dump|/pub/contrib");
 
-                // TODO: Uncomment once a reliable logic is implemented to extract (from ENA API) Project accessions corresponding
-                // TODO: to ENA accessions reported in ElasticSearch.
-//                get(protocol).get(DB.ENA).put(RegexType.accession, ENA_ACCESSION_REGEX);
-//                get(protocol).get(DB.ENA).put(RegexType.negative,
-//                        "/atlas/rnaseq/|/ena/doc/|/ena/report/|/ena/sequence/misc/|/ena/tsa_master/|vol1/\\.welcome|/ena/taxonomy/|/suppressed/|/trace/");
+                get(protocol).get(DB.ENA).put(RegexType.accession, ENA_ACCESSION_REGEX);
+                get(protocol).get(DB.ENA).put(RegexType.negative,
+                        "/atlas/rnaseq/|/ena/doc/|/ena/report/|/ena/sequence/misc/|/ena/tsa_master/|vol1/\\.welcome|/ena/taxonomy/|/suppressed/|/trace/");
 
                 get(protocol).get(DB.ExpressionAtlas).put(RegexType.accession, ARRAYEXPRESS_ACCESSION_REGEX);
                 get(protocol).get(DB.ExpressionAtlas).put(RegexType.positive,
@@ -147,9 +145,7 @@ public class ElasticSearchWsConfigProd {
             }
 
             // ftp-specific regexes
-            // TODO: Uncomment once a reliable logic is implemented to extract (from ENA API) Project accessions corresponding
-            // TODO: to ENA accessions reported in ElasticSearch.
-//            get(Protocol.ftp).get(DB.ENA).put(RegexType.positive, "/ena/");
+            get(Protocol.ftp).get(DB.ENA).put(RegexType.positive, "/ena/");
 
             // TODO: Uncomment once downloads data per BioModel accession is made available from BioModels
 //            get(Protocol.ftp).get(DB.BioModels).put(RegexType.accession, "(BIOMD|MODEL)\\d{10}|BMID\\d{12}");
@@ -161,9 +157,7 @@ public class ElasticSearchWsConfigProd {
             get(Protocol.ftp).get(DB.EVA).put(RegexType.negative, "/eva/ClinVar/");
 
             // aspera-specific regexes
-            // TODO: Uncomment once a reliable logic is implemented to extract (from ENA API) Project accessions corresponding
-            // TODO: to ENA accessions reported in ElasticSearch.
-//            get(Protocol.aspera).get(DB.ENA).put(RegexType.positive, "/era-pub");
+            get(Protocol.aspera).get(DB.ENA).put(RegexType.positive, "/era-pub");
 
         }
     };
