@@ -21,18 +21,20 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.search.slice.SliceBuilder;
 import uk.ac.ebi.ddi.downloas.ena.ENAWsClient;
 import uk.ac.ebi.ddi.downloas.ena.ENAWsConfigProd;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 
 /**
@@ -49,11 +51,17 @@ public class ElasticSearchWsClient {
     private ENAWsClient enaWsClient = new ENAWsClient(new ENAWsConfigProd());
     private ElasticSearchWsConfigProd config;
 
+    public void setParallel(boolean parallel) {
+        this.parallel = parallel;
+    }
+
+    public boolean parallel = false;
+
     // Hashmap for storing results aggregated by period (yyyy/mm)
+
     private static final Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> dbToAccessionToPeriodToAnonymisedIPAddressToFileName =
-            new HashMap<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>>() {
+            new ConcurrentHashMap<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>>() {
                 {
-                    // Initialise all sub-maps
                     for (ElasticSearchWsConfigProd.DB db : ElasticSearchWsConfigProd.DB.values()) {
                         put(db, new HashMap<>());
                     }
@@ -66,22 +74,14 @@ public class ElasticSearchWsClient {
      * @param config
      */
     public ElasticSearchWsClient(ElasticSearchWsConfigProd config) {
-        this.config = config;
+        ElasticSearchWsConfigProd config1 = config;
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ElasticSearchWsConfigProd.USERNAME, ElasticSearchWsConfigProd.PASSWORD));
+                new UsernamePasswordCredentials(config.getUsername(), config.password));
         RestClientBuilder builder = RestClient.builder(
-                new HttpHost(ElasticSearchWsConfigProd.HOST, ElasticSearchWsConfigProd.PORT))
-                .setHttpClientConfigCallback(new RestClientBuilder.HttpClientConfigCallback() {
-                    public HttpAsyncClientBuilder customizeHttpClient(HttpAsyncClientBuilder httpClientBuilder) {
-                        return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                    }
-                }).setRequestConfigCallback(new RestClientBuilder.RequestConfigCallback() {
-                    public RequestConfig.Builder customizeRequestConfig(RequestConfig.Builder requestConfigBuilder) {
-                        return requestConfigBuilder.setConnectTimeout(ElasticSearchWsConfigProd.CONNECT_TIMEOUT)
-                                .setSocketTimeout(ElasticSearchWsConfigProd.SOCKET_TIMEOUT);
-                    }
-                }).setMaxRetryTimeoutMillis(ElasticSearchWsConfigProd.MAX_RETRY_TIMEOUT);
+                new HttpHost(config.getHost(), config.port))
+                .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)).setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder.setConnectTimeout(ElasticSearchWsConfigProd.CONNECT_TIMEOUT)
+                        .setSocketTimeout(ElasticSearchWsConfigProd.SOCKET_TIMEOUT)).setMaxRetryTimeoutMillis(ElasticSearchWsConfigProd.MAX_RETRY_TIMEOUT);
         this.restHighLevelClient = new RestHighLevelClient(builder);
     }
 
@@ -92,9 +92,13 @@ public class ElasticSearchWsClient {
      * @return For a given database, dataset accession and a year (represented by yearLocalDate),
      * return a Map between each Period (yyyy/mm) and a map of anonymised IP addresses pointing Multisets of their corresponding file names/download counts
      */
+
     public Map<String, Map<String, Multiset<String>>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession, LocalDate yearLocalDate) {
         Map<String, Map<String, Multiset<String>>> anonymisedIPAddressToFileNames = null;
-        retrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
+        if(parallel)
+            parallelRetrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
+        else
+            retrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
         if (dbToAccessionToPeriodToAnonymisedIPAddressToFileName.containsKey(db)) {
             Map<String, Map<String, Map<String, Multiset<String>>>> accessionToPeriodToAnonymisedIPAddressToFileName =
                     dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db);
@@ -183,6 +187,81 @@ public class ElasticSearchWsClient {
     }
 
     /**
+     * Function to retrieve all relevant data download entries for the current year from ftp- and Aspera-specific ElasticSearch indexes,
+     * and aggregate them in the static dbToAccessionToPeriodToFileName data structure
+     *
+     * @param batchSize          If not null, size of each batch to be retrieved from ElasticSearch
+     * @param reportingFrequency If not null, the total so far of the records retrieved from ElasticSearch is output every reportingFrequency records
+     * @param maxHits            If not null, the maximum number of records to be retrieved (used for testing)
+     * @param yearLocalDate      Date representing the year for which the data should be retrieved from ElasticSearch; cannot be null
+     */
+    private void parallelRetrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
+        if (resultsReady()) {
+            if (batchSize == null) {
+                batchSize = ElasticSearchWsConfigProd.DEFAULT_QUERY_BATCH_SIZE;
+            }
+            if (reportingFrequency == null) {
+                reportingFrequency = ElasticSearchWsConfigProd.DEFAULT_PROGRESS_REPORTING_FREQ;
+            }
+
+            // Retrieve year from queryYear
+            int year = yearLocalDate.getYear();
+
+            Integer finalBatchSize = batchSize;
+            Integer finalReportingFrequency = reportingFrequency;
+
+            Arrays.asList(ElasticSearchWsConfigProd.Protocol.values()).parallelStream().forEach(
+                    protocol -> {
+                        log.info("Starting on protocol: " + protocol.toString());
+                        String protocolStr = protocol.toString();
+                        SearchRequest searchRequest = new SearchRequest(protocolStr + "logs-*");
+                        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+                        searchSourceBuilder.query(QueryBuilders.termQuery("year", Integer.toString(year)));
+                        searchSourceBuilder.size(finalBatchSize);
+
+                        int slices = 10;
+                        IntStream.range(0, slices).parallel().forEach( slice -> {
+
+                            SliceBuilder sliceBuilder = new SliceBuilder(slice, slices);
+                            searchSourceBuilder.slice(sliceBuilder);
+                            searchRequest.source(searchSourceBuilder);
+
+                            searchRequest.scroll(TimeValue.timeValueMinutes(ElasticSearchWsConfigProd.SCROLL_VALID_PERIOD));
+                            try {
+                                SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+                                String scrollId = searchResponse.getScrollId();
+                                SearchHit[] searchHits = searchResponse.getHits().getHits();
+                                getValuesFromHits(searchHits, protocol, enaWsClient);
+
+                                // Retrieve all the relevant documents
+                                int searchHitsCount = 0;
+
+                                while (searchHits != null && searchHits.length > 0 && (maxHits == null || searchHitsCount < maxHits)) {
+                                    SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+                                    scrollRequest.scroll(TimeValue.timeValueSeconds(ElasticSearchWsConfigProd.SCROLL_VALID_PERIOD));
+                                    SearchResponse searchScrollResponse = restHighLevelClient.scroll(scrollRequest, RequestOptions.DEFAULT);
+                                    scrollId = searchScrollResponse.getScrollId();
+                                    searchHits = searchScrollResponse.getHits().getHits();
+                                    getValuesFromHits(searchHits, protocol, enaWsClient);
+                                    searchHitsCount += finalBatchSize;
+                                    if ((searchHitsCount % finalReportingFrequency) == 0) {
+                                        log.info(protocol + " " + searchHitsCount + "");
+                                    }
+                                }
+                            } catch (IOException ioe) {
+                                log.error("Exception in retrieving data from ElasticSearch via RestHighLevelClient" + ioe.getMessage());
+                            }
+
+                        });
+                        log.info("Done retrieving " + protocolStr + " download data");
+
+                    }
+            );
+        }
+    }
+
+    /**
      * @param source
      * @return Date String in format: yyyy/mm retrieved from source
      */
@@ -223,7 +302,7 @@ public class ElasticSearchWsClient {
         } else {
             log.error("ERROR: Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
         }
-        return new Tuple(omicsDIAccession, fileName);
+        return new Tuple<>(omicsDIAccession, fileName);
     }
 
     /**
@@ -234,6 +313,7 @@ public class ElasticSearchWsClient {
      * @param period
      * @param fileName
      */
+
     private static void addToResults(ElasticSearchWsConfigProd.DB db, String accession, String period, String anonymisedIPAddress, String fileName) {
         if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).containsKey(accession)) {
             // We haven't seen this accession before
@@ -272,8 +352,13 @@ public class ElasticSearchWsClient {
      * @param yearLocalDate
      * @return
      */
+
     public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> getResults(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
-        retrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits, yearLocalDate);
+        if(parallel)
+            parallelRetrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits, yearLocalDate);
+        else
+            retrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits, yearLocalDate);
+
         return dbToAccessionToPeriodToAnonymisedIPAddressToFileName;
     }
 

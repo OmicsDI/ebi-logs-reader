@@ -13,16 +13,20 @@ The name of the databases can be found here:
 |  ExpressionAtlas | www.ebi.ac.uk/gxa            |
 |  ArrayExpress    | www.ebi.ac.uk/arrayexpress   |
 |  EVA             | www.ebi.ac.uk/eva            |
+| Metabolights     | www.ebi.ac.uk/metabolights   |
 
+
+Code:
 
 ```java
 
-    ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd());
+    ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd(port,machine,user, port));
 
-    public void getDataDownloads() {
-        Map<String, Multiset<String>> prideDownloads = elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
-        Assert.assertTrue(prideDownloads.size() > 0);
-    }
+    elasticSearchClient.setParallel(true);
+            Map<String, Map<String, Multiset<String>>> prideDownloads =
+                    elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
+            Assert.assertTrue(prideDownloads.size() > 0);
+        }
 
 ```
 

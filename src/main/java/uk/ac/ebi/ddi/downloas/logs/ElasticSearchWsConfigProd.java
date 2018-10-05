@@ -11,12 +11,10 @@ import java.util.Map;
  */
 public class ElasticSearchWsConfigProd {
 
-    public static final Integer PORT = 9200;
-    // Available ElasticSearch nodes can be viewed at: https://meter.ebi.ac.uk/app/monitoring#/elasticsearch/nodes?_g=(cluster_uuid:KybG-9d6Q0Cn4HXIjnfVzw)
-    // C.f. For available timeout config, c.f. https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_timeouts.html
-    public static final String HOST = "10.3.10.28";
-    public static final String USERNAME = "readall";
-    public static final String PASSWORD = USERNAME;
+    public Integer port;
+    public String  host;
+    public String  username;
+    public String  password;
 
     // ElasticSearch query-related constants
     public static final Long SCROLL_VALID_PERIOD = 1440L; // 24h
@@ -67,15 +65,54 @@ public class ElasticSearchWsConfigProd {
         ArrayExpress, Pride, ExpressionAtlas, EVA, Metabolights, ENA
     }
 
+    public ElasticSearchWsConfigProd(Integer port, String host, String username, String password) {
+        this.port = port;
+        this.host = host;
+        this.username = username;
+        this.password = password;
+    }
+
+    public Integer getPort() {
+        return port;
+    }
+
+    public void setPort(Integer port) {
+        this.port = port;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     // Hashmap for storing regexes
     public static final Map<Protocol, Map<DB, Map<RegexType, String>>> protocol2DB2Regex
             = new HashMap<Protocol, Map<DB, Map<RegexType, String>>>() {
         {
             // Initialise all sub-maps
             for (Protocol protocol : Protocol.values()) {
-                put(protocol, new HashMap<DB, Map<RegexType, String>>());
+                put(protocol, new HashMap<>());
                 for (DB db : DB.values()) {
-                    get(protocol).put(db, new HashMap<RegexType, String>());
+                    get(protocol).put(db, new HashMap<>());
                 }
             }
             for (Protocol protocol : Protocol.values()) {
