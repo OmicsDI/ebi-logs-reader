@@ -20,12 +20,13 @@ Code:
 
 ```java
 
-    ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd());
+    ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd(port,machine,user, port));
 
-    public void getDataDownloads() {
-        Map<String, Multiset<String>> prideDownloads = elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
-        Assert.assertTrue(prideDownloads.size() > 0);
-    }
+    elasticSearchClient.setParallel(true);
+            Map<String, Map<String, Multiset<String>>> prideDownloads =
+                    elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
+            Assert.assertTrue(prideDownloads.size() > 0);
+        }
 
 ```
 

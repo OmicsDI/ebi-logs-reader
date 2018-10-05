@@ -21,11 +21,12 @@ import java.util.Map;
  */
 public class ElasticSearchWsClientTest {
 
-    ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd());
+    ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd(1,"localhost","readme", "readmed"));
 
     /**
      * This test is really slow should be used only to test locally and it needs more than 12G memory.
      */
+    @Ignore
     @Test
     public void getDataDownloads() {
         elasticSearchClient.setParallel(true);

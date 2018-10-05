@@ -72,9 +72,9 @@ public class ElasticSearchWsClient {
         ElasticSearchWsConfigProd config1 = config;
         final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(ElasticSearchWsConfigProd.USERNAME, ElasticSearchWsConfigProd.PASSWORD));
+                new UsernamePasswordCredentials(config.getUsername(), config.password));
         RestClientBuilder builder = RestClient.builder(
-                new HttpHost(ElasticSearchWsConfigProd.HOST, ElasticSearchWsConfigProd.PORT))
+                new HttpHost(config.getHost(), config.port))
                 .setHttpClientConfigCallback(httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)).setRequestConfigCallback(requestConfigBuilder -> requestConfigBuilder.setConnectTimeout(ElasticSearchWsConfigProd.CONNECT_TIMEOUT)
                         .setSocketTimeout(ElasticSearchWsConfigProd.SOCKET_TIMEOUT)).setMaxRetryTimeoutMillis(ElasticSearchWsConfigProd.MAX_RETRY_TIMEOUT);
         this.restHighLevelClient = new RestHighLevelClient(builder);
