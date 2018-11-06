@@ -57,7 +57,9 @@ public class ENAWsClient extends WsClient {
             String url = accType2Url.get(accType);
             log.info(url);
             for (ENAProjectAccessionMapping pAcc : this.restTemplate.getForObject(url, ENAProjectAccessionMapping[].class)) {
-                enaAccessionToProject.put(pAcc.getAccession(accType), pAcc.getProjectAccession());
+                String accessionInCache = accType == ENAWsConfigProd.AccessionTypes.sequence ?
+                        pAcc.getAccession(accType).replace(ENAWsConfigProd.getLookupPostfix(accType),"") : pAcc.getAccession(accType);
+                enaAccessionToProject.put(accessionInCache, pAcc.getProjectAccession());
             }
         }
         long estimatedTime = (System.currentTimeMillis() - startTime) / 1000; // secs
