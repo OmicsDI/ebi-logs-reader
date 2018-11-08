@@ -26,12 +26,11 @@ public class ElasticSearchWsClientTest {
     /**
      * This test is really slow should be used only to test locally and it needs more than 12G memory.
      */
-    @Ignore
     @Test
     public void getDataDownloads() {
         elasticSearchClient.setParallel(true);
         Map<String, Map<String, Multiset<String>>> prideDownloads =
-                elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
+                elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533");
         Assert.assertTrue(prideDownloads.size() > 0);
     }
 

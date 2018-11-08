@@ -1,7 +1,6 @@
 package uk.ac.ebi.ddi.downloas.logs;
 
 
-
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.http.client.config.RequestConfig;
@@ -29,7 +28,6 @@ import uk.ac.ebi.ddi.downloas.ena.ENAWsClient;
 import uk.ac.ebi.ddi.downloas.ena.ENAWsConfigProd;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -88,18 +86,17 @@ public class ElasticSearchWsClient {
     /**
      * @param db
      * @param accession
-     * @param yearLocalDate
      * @return For a given database, dataset accession and a year (represented by yearLocalDate),
      * return a Map between each Period (yyyy/mm) and a map of anonymised IP addresses pointing Multisets of their corresponding file names/download counts
      */
 
-    public Map<String, Map<String, Multiset<String>>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession, LocalDate yearLocalDate) {
+    public Map<String, Map<String, Multiset<String>>> getDataDownloads(ElasticSearchWsConfigProd.DB db, String accession) {
         Map<String, Map<String, Multiset<String>>> anonymisedIPAddressToFileNames = null;
         enaWsClient.populateCache();
-        if(parallel)
-            parallelRetrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
+        if (parallel)
+            parallelRetrieveAllDataFromElasticSearch(null, null, null);
         else
-            retrieveAllDataFromElasticSearch(null, null, null, yearLocalDate);
+            retrieveAllDataFromElasticSearch(null, null, null);
         if (dbToAccessionToPeriodToAnonymisedIPAddressToFileName.containsKey(db)) {
             Map<String, Map<String, Map<String, Multiset<String>>>> accessionToPeriodToAnonymisedIPAddressToFileName =
                     dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db);
@@ -128,15 +125,30 @@ public class ElasticSearchWsClient {
     }
 
     /**
+     *
+     * @return Tuple containing start and end date of the previous month
+     */
+    private Tuple<Date, Date> getPreviousMonthDateRange() {
+        Calendar aCalendar = Calendar.getInstance();
+        aCalendar.add(Calendar.MONTH, -1);
+        // set DATE to 1, so first date of previous month
+        aCalendar.set(Calendar.DATE, 1);
+        Date firstDateOfPreviousMonth = aCalendar.getTime();
+        // set actual maximum date of previous month
+        aCalendar.set(Calendar.DATE, aCalendar.getActualMaximum(Calendar.DAY_OF_MONTH));
+        Date lastDateOfPreviousMonth = aCalendar.getTime();
+        return new Tuple(firstDateOfPreviousMonth, lastDateOfPreviousMonth);
+    }
+
+    /**
      * Function to retrieve all relevant data download entries for the current year from ftp- and Aspera-specific ElasticSearch indexes,
      * and aggregate them in the static dbToAccessionToPeriodToFileName data structure
      *
      * @param batchSize          If not null, size of each batch to be retrieved from ElasticSearch
      * @param reportingFrequency If not null, the total so far of the records retrieved from ElasticSearch is output every reportingFrequency records
      * @param maxHits            If not null, the maximum number of records to be retrieved (used for testing)
-     * @param yearLocalDate      Date representing the year for which the data should be retrieved from ElasticSearch; cannot be null
      */
-    private void retrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
+    private void retrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits) {
         if (resultsReady()) {
             if (batchSize == null) {
                 batchSize = ElasticSearchWsConfigProd.DEFAULT_QUERY_BATCH_SIZE;
@@ -144,9 +156,10 @@ public class ElasticSearchWsClient {
             if (reportingFrequency == null) {
                 reportingFrequency = ElasticSearchWsConfigProd.DEFAULT_PROGRESS_REPORTING_FREQ;
             }
-
-            // Retrieve year from queryYear
-            int year = yearLocalDate.getYear();
+            // By default, retrieve data from ES for the month previous to the current one
+            Tuple<Date,Date> firstLastDate =  getPreviousMonthDateRange();
+            Date firstDateOfPreviousMonth = firstLastDate.v1();
+            Date lastDateOfPreviousMonth = firstLastDate.v2();
 
             for (ElasticSearchWsConfigProd.Protocol protocol : ElasticSearchWsConfigProd.Protocol.values()) {
                 log.info("Starting on protocol: " + protocol.toString());
@@ -155,7 +168,8 @@ public class ElasticSearchWsClient {
                 // Initialise the search scroll context
                 SearchRequest searchRequest = new SearchRequest(protocolStr + "logs-*");
                 SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-                searchSourceBuilder.query(QueryBuilders.termQuery("year", Integer.toString(year)));
+                searchSourceBuilder.query(QueryBuilders.boolQuery()
+                        .must(QueryBuilders.rangeQuery("@timestamp").to(lastDateOfPreviousMonth).from(firstDateOfPreviousMonth)));
                 searchSourceBuilder.size(batchSize);
                 searchRequest.source(searchSourceBuilder);
                 searchRequest.scroll(TimeValue.timeValueMinutes(ElasticSearchWsConfigProd.SCROLL_VALID_PERIOD));
@@ -194,9 +208,8 @@ public class ElasticSearchWsClient {
      * @param batchSize          If not null, size of each batch to be retrieved from ElasticSearch
      * @param reportingFrequency If not null, the total so far of the records retrieved from ElasticSearch is output every reportingFrequency records
      * @param maxHits            If not null, the maximum number of records to be retrieved (used for testing)
-     * @param yearLocalDate      Date representing the year for which the data should be retrieved from ElasticSearch; cannot be null
      */
-    private void parallelRetrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
+    private void parallelRetrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits) {
         if (resultsReady()) {
             if (batchSize == null) {
                 batchSize = ElasticSearchWsConfigProd.DEFAULT_QUERY_BATCH_SIZE;
@@ -204,9 +217,10 @@ public class ElasticSearchWsClient {
             if (reportingFrequency == null) {
                 reportingFrequency = ElasticSearchWsConfigProd.DEFAULT_PROGRESS_REPORTING_FREQ;
             }
-
-            // Retrieve year from queryYear
-            int year = yearLocalDate.getYear();
+            // By default, retrieve data from ES for the month previous to the current one
+            Tuple<Date,Date> firstLastDate =  getPreviousMonthDateRange();
+            Date firstDateOfPreviousMonth = firstLastDate.v1();
+            Date lastDateOfPreviousMonth = firstLastDate.v2();
 
             Integer finalBatchSize = batchSize;
             Integer finalReportingFrequency = reportingFrequency;
@@ -217,8 +231,8 @@ public class ElasticSearchWsClient {
                         String protocolStr = protocol.toString();
                         SearchRequest searchRequest = new SearchRequest(protocolStr + "logs-*");
                         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-
-                        searchSourceBuilder.query(QueryBuilders.termQuery("year", Integer.toString(year)));
+                        searchSourceBuilder.query(QueryBuilders.boolQuery()
+                                .must(QueryBuilders.rangeQuery("@timestamp").to(lastDateOfPreviousMonth).from(firstDateOfPreviousMonth)));
                         searchSourceBuilder.size(finalBatchSize);
 
                         int slices = 10;
@@ -296,7 +310,7 @@ public class ElasticSearchWsClient {
         if (b) {
             String esAccession = matcher.group(0).replaceAll("^/|[_/]+$", "");
             if (db == ElasticSearchWsConfigProd.DB.ENA) {
-                omicsDIAccession =  enaWsClient.getProjectAccession(esAccession);
+                omicsDIAccession = enaWsClient.getProjectAccession(esAccession);
             } else {
                 omicsDIAccession = esAccession;
             }
@@ -350,15 +364,14 @@ public class ElasticSearchWsClient {
      * @param batchSize
      * @param reportingFrequency
      * @param maxHits
-     * @param yearLocalDate
      * @return
      */
 
-    public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> getResults(Integer batchSize, Integer reportingFrequency, Integer maxHits, LocalDate yearLocalDate) {
-        if(parallel)
-            parallelRetrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits, yearLocalDate);
+    public Map<ElasticSearchWsConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> getResults(Integer batchSize, Integer reportingFrequency, Integer maxHits) {
+        if (parallel)
+            parallelRetrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits);
         else
-            retrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits, yearLocalDate);
+            retrieveAllDataFromElasticSearch(batchSize, reportingFrequency, maxHits);
 
         return dbToAccessionToPeriodToAnonymisedIPAddressToFileName;
     }
