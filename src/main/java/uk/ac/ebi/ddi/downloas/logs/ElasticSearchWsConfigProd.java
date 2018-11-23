@@ -147,11 +147,6 @@ public class ElasticSearchWsConfigProd {
             // ftp-specific regexes
             get(Protocol.ftp).get(DB.ENA).put(RegexType.positive, "/ena/");
 
-            // TODO: Uncomment once downloads data per BioModel accession is made available from BioModels
-//            get(Protocol.ftp).get(DB.BioModels).put(RegexType.accession, "(BIOMD|MODEL)\\d{10}|BMID\\d{12}");
-//            get(Protocol.ftp).get(DB.BioModels).put(RegexType.positive, "/biomodels/logical/|/biomodels/metabolic/|/biomodels/pdgsmm/|/biomodels/releases/");
-//            get(Protocol.ftp).get(DB.BioModels).put(RegexType.negative, "README.txt");
-
             get(Protocol.ftp).get(DB.EVA).put(RegexType.accession, EVA_ACCESSION_REGEX);
             get(Protocol.ftp).get(DB.EVA).put(RegexType.positive, "/eva/(" + EVA_ACCESSION_REGEX + ")");
             get(Protocol.ftp).get(DB.EVA).put(RegexType.negative, "/eva/ClinVar/");

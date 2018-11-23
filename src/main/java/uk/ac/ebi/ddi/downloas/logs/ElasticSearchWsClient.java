@@ -103,7 +103,7 @@ public class ElasticSearchWsClient {
             if (accessionToPeriodToAnonymisedIPAddressToFileName.containsKey(accession)) {
                 anonymisedIPAddressToFileNames = dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession);
             } else {
-                log.warn("No accession: '" + accession + "' could be found in the data retrieved for db: '" + db.toString() + "'from ElasticSearch");
+                log.warn("No accession: '" + accession + "' could be found in the data retrieved for db: '" + db.toString() + "' from ElasticSearch");
             }
         } else {
             log.warn("No db: '" + db.toString() + "' could be found in the data retrieved from ElasticSearch");
@@ -112,7 +112,7 @@ public class ElasticSearchWsClient {
     }
 
     /**
-     * @return False if for at least on DB no data downloads are present; otherwise return True
+     * @return False if for at least one DB no data downloads are present; otherwise return True
      */
     private boolean resultsReady() {
         boolean resultsReady = true;
@@ -149,7 +149,7 @@ public class ElasticSearchWsClient {
      * @param maxHits            If not null, the maximum number of records to be retrieved (used for testing)
      */
     private void retrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits) {
-        if (resultsReady()) {
+        if (!resultsReady()) {
             if (batchSize == null) {
                 batchSize = ElasticSearchWsConfigProd.DEFAULT_QUERY_BATCH_SIZE;
             }
@@ -210,7 +210,7 @@ public class ElasticSearchWsClient {
      * @param maxHits            If not null, the maximum number of records to be retrieved (used for testing)
      */
     private void parallelRetrieveAllDataFromElasticSearch(Integer batchSize, Integer reportingFrequency, Integer maxHits) {
-        if (resultsReady()) {
+        if (!resultsReady()) {
             if (batchSize == null) {
                 batchSize = ElasticSearchWsConfigProd.DEFAULT_QUERY_BATCH_SIZE;
             }
