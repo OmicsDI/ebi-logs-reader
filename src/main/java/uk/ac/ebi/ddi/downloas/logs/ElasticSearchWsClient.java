@@ -83,6 +83,18 @@ public class ElasticSearchWsClient {
         this.restHighLevelClient = new RestHighLevelClient(builder);
     }
 
+    public void initialiseData() {
+        enaWsClient.populateCache();
+        retrieveAllDataFromElasticSearch(null, null, null);
+    }
+
+    public Map<String, Map<String, Map<String, Multiset<String>>>> getCachingData(ElasticSearchWsConfigProd.DB db) {
+        if (dbToAccessionToPeriodToAnonymisedIPAddressToFileName.containsKey(db)) {
+            return dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db);
+        }
+        return Collections.emptyMap();
+    }
+
     /**
      * @param db
      * @param accession
