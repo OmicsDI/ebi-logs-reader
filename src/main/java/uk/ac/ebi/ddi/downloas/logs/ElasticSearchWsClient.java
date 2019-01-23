@@ -117,7 +117,7 @@ public class ElasticSearchWsClient {
     private boolean resultsReady() {
         boolean resultsReady = true;
         for (ElasticSearchWsConfigProd.DB db : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.keySet()) {
-            resultsReady = dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).isEmpty();
+            resultsReady = !dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).isEmpty();
             if (!resultsReady)
                 break;
         }
