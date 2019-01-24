@@ -349,33 +349,40 @@ public class ElasticSearchWsClient {
      * @param fileName
      */
 
-    private static void addToResults(ElasticSearchWsConfigProd.DB db, String accession, String period, String anonymisedIPAddress, String fileName) {
+    public static void addToResults(ElasticSearchWsConfigProd.DB db, String accession, String period,
+                                     String anonymisedIPAddress, String fileName) {
         if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).containsKey(accession)) {
             // We haven't seen this accession before
-            Map<String, Map<String, Multiset<String>>> periodToAnonymisedIPAddressToFileNames = new HashMap<>();
-            Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
+            Map<String, Map<String, Multiset<String>>> periodToAnonymisedIPAddressToFileNames
+                    = new ConcurrentHashMap<>();
+            Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new ConcurrentHashMap<>();
             // N.B. We use Multiset to maintain counts per individual download file
-            anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
+            anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.create());
             anonymisedIPAddressToFileNames.get(anonymisedIPAddress).add(fileName);
             periodToAnonymisedIPAddressToFileNames.put(period, anonymisedIPAddressToFileNames);
-            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).put(accession, periodToAnonymisedIPAddressToFileNames);
+            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).put(
+                    accession, periodToAnonymisedIPAddressToFileNames);
         } else {
             // We've seen this accession before
             if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).containsKey(period)) {
                 // We haven't seen this period for this accession before
-                Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
-                anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
-                dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(period, anonymisedIPAddressToFileNames);
+                Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new ConcurrentHashMap<>();
+                anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.create());
+                dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession)
+                        .put(period, anonymisedIPAddressToFileNames);
             } else {
                 // We have seen this period for this accession before
-                if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).containsKey(anonymisedIPAddress)) {
+                if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period)
+                        .containsKey(anonymisedIPAddress)) {
                     // We haven't seen this anonymisedIPAddress for that accession and period before
-                    Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
-                    anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
-                    dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(period, anonymisedIPAddressToFileNames);
+                    Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new ConcurrentHashMap<>();
+                    anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.create());
+                    dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(
+                            period, anonymisedIPAddressToFileNames);
                 }
             }
-            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).get(anonymisedIPAddress).add(fileName);
+            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period)
+                    .get(anonymisedIPAddress).add(fileName);
         }
     }
 
@@ -402,8 +409,9 @@ public class ElasticSearchWsClient {
      * @param searchHits
      * @param protocol
      */
-    private static void getValuesFromHits(SearchHit[] searchHits, ElasticSearchWsConfigProd.Protocol protocol, ENAWsClient enaWsClient) {
-        for (SearchHit hit : searchHits) {
+    private static void getValuesFromHits(SearchHit[] searchHits, ElasticSearchWsConfigProd.Protocol protocol,
+                                          ENAWsClient enaWsClient) {
+        Arrays.stream(searchHits).parallel().forEach(hit -> {
             Map k2v = hit.getSourceAsMap();
             String source = k2v.get("source").toString();
             String anonymisedIPAddress = k2v.get("uhost").toString();  // Anonymised IP address
@@ -438,6 +446,6 @@ public class ElasticSearchWsClient {
                     }
                 }
             }
-        }
+        });
     }
 }
