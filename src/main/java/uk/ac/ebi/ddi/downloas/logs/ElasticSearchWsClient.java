@@ -317,9 +317,10 @@ public class ElasticSearchWsClient {
      * @param accessionRegex
      * @return A tuple first accession and then the name of the file being downloaded
      */
-    private static Tuple<String, String> getAccessionAndFileName(ElasticSearchWsConfigProd.DB db, String filePath, String accessionRegex, ENAWsClient enaWsClient) {
+    private static Tuple<String, String> getAccessionAndFileName(ElasticSearchWsConfigProd.DB db, String filePath,
+                                                                 Pattern accessionRegex, ENAWsClient enaWsClient) {
         // c.f. [/\\.] below for retrieval of e.g. /GCA_002757455 from /GCA_002757455.1_
-        Matcher matcher = Pattern.compile("/" + accessionRegex + "[/\\.]").matcher(filePath);
+        Matcher matcher = accessionRegex.matcher(filePath);
         boolean b = matcher.find();
         // Retrieve file name
         String[] arr = filePath.split("/");
@@ -408,13 +409,15 @@ public class ElasticSearchWsClient {
             String anonymisedIPAddress = k2v.get("uhost").toString();  // Anonymised IP address
             String filePath = k2v.get("file_name").toString();
             for (ElasticSearchWsConfigProd.DB db : ElasticSearchWsConfigProd.DB.values()) {
-                Map<ElasticSearchWsConfigProd.RegexType, String> typeToRegex = ElasticSearchWsConfigProd.protocol2DB2Regex.get(protocol).get(db);
-                if (typeToRegex.keySet().isEmpty())
+                Map<ElasticSearchWsConfigProd.RegexType, Pattern> typeToRegex =
+                        ElasticSearchWsConfigProd.protocol2DB2Regex.get(protocol).get(db);
+                if (typeToRegex.keySet().isEmpty()) {
                     continue;
+                }
                 String resource = null;
-                if (Pattern.compile(typeToRegex.get(ElasticSearchWsConfigProd.RegexType.positive)).matcher(filePath).find()) {
+                if (typeToRegex.get(ElasticSearchWsConfigProd.RegexType.positive).matcher(filePath).find()) {
                     if (typeToRegex.get(ElasticSearchWsConfigProd.RegexType.negative) != null) {
-                        if (!Pattern.compile(typeToRegex.get(ElasticSearchWsConfigProd.RegexType.negative)).matcher(filePath).find()) {
+                        if (!typeToRegex.get(ElasticSearchWsConfigProd.RegexType.negative).matcher(filePath).find()) {
                             resource = db.toString();
                         }
                     } else {
@@ -422,7 +425,8 @@ public class ElasticSearchWsClient {
                     }
                 }
                 if (resource != null) {
-                    Tuple<String, String> accessionFileName = getAccessionAndFileName(db, filePath, typeToRegex.get(ElasticSearchWsConfigProd.RegexType.accession), enaWsClient);
+                    Tuple<String, String> accessionFileName = getAccessionAndFileName(db, filePath,
+                            typeToRegex.get(ElasticSearchWsConfigProd.RegexType.accessionSpecial), enaWsClient);
                     String accession = accessionFileName.v1();
                     String fileName = accessionFileName.v2();
                     if (accession != null) {

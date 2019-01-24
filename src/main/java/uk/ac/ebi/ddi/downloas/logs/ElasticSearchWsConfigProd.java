@@ -4,6 +4,7 @@ package uk.ac.ebi.ddi.downloas.logs;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * @author Robert Petryszak rpetry
@@ -53,7 +54,7 @@ public class ElasticSearchWsConfigProd {
 
     // Regex types for mapping data download log entries to OmicsDI resources and their accessions
     public enum RegexType {
-        accession, positive, negative
+        accession, positive, negative, accessionSpecial
     }
 
     // EBI resources in OmicsDI:
@@ -105,8 +106,8 @@ public class ElasticSearchWsConfigProd {
     }
 
     // Hashmap for storing regexes
-    public static final Map<Protocol, Map<DB, Map<RegexType, String>>> protocol2DB2Regex
-            = new HashMap<Protocol, Map<DB, Map<RegexType, String>>>() {
+    public static final Map<Protocol, Map<DB, Map<RegexType, Pattern>>> protocol2DB2Regex
+            = new HashMap<Protocol, Map<DB, Map<RegexType, Pattern>>>() {
         {
             // Initialise all sub-maps
             for (Protocol protocol : Protocol.values()) {
@@ -116,44 +117,61 @@ public class ElasticSearchWsConfigProd {
                 }
             }
             for (Protocol protocol : Protocol.values()) {
-                get(protocol).get(DB.ArrayExpress).put(RegexType.accession, ARRAYEXPRESS_ACCESSION_REGEX);
-                get(protocol).get(DB.ArrayExpress).put(RegexType.positive, "/arrayexpress/data/experiment/\\w{4}/" + ARRAYEXPRESS_ACCESSION_REGEX);
-                get(protocol).get(DB.ArrayExpress).put(RegexType.negative, EXPRESSION_ATLAS_FTP_ROOT + "|/data/array/");
+                get(protocol).get(DB.ArrayExpress).put(RegexType.accession,
+                        Pattern.compile(ARRAYEXPRESS_ACCESSION_REGEX));
+                get(protocol).get(DB.ArrayExpress).put(RegexType.positive,
+                        Pattern.compile("/arrayexpress/data/experiment/\\w{4}/" + ARRAYEXPRESS_ACCESSION_REGEX));
+                get(protocol).get(DB.ArrayExpress).put(RegexType.negative,
+                        Pattern.compile(EXPRESSION_ATLAS_FTP_ROOT + "|/data/array/"));
 
                 // TODO: Uncomment once data downloads feed from EGA is established (outside of ElasticSearch)
 //                get(protocol).get(DB.EGA).put(RegexType.accession, EGA_ACCESSION_REGEX);
 //                get(protocol).get(DB.EGA).put(RegexType.positive, "/ega/");
 //                get(protocol).get(DB.EGA).put(RegexType.negative, "/ega_\\w+_prod_dump|/pub/contrib");
 
-                get(protocol).get(DB.ENA).put(RegexType.accession, ENA_ACCESSION_REGEX);
+                get(protocol).get(DB.ENA).put(RegexType.accession, Pattern.compile(ENA_ACCESSION_REGEX));
                 get(protocol).get(DB.ENA).put(RegexType.negative,
-                        "/atlas/rnaseq/|/ena/doc/|/ena/report/|/ena/sequence/misc/|/ena/tsa_master/|vol1/\\.welcome|/ena/taxonomy/|/suppressed/|/trace/");
+                        Pattern.compile("/atlas/rnaseq/|/ena/doc/|/ena/report/|/ena/sequence/misc/|/ena/tsa_master/" +
+                                "|vol1/\\.welcome|/ena/taxonomy/|/suppressed/|/trace/"));
 
-                get(protocol).get(DB.ExpressionAtlas).put(RegexType.accession, ARRAYEXPRESS_ACCESSION_REGEX);
+                get(protocol).get(DB.ExpressionAtlas).put(RegexType.accession,
+                        Pattern.compile(ARRAYEXPRESS_ACCESSION_REGEX));
                 get(protocol).get(DB.ExpressionAtlas).put(RegexType.positive,
-                        EXPRESSION_ATLAS_FTP_ROOT + "(experiments/|rnaseq/studies/arrayexpress/)" + ARRAYEXPRESS_ACCESSION_REGEX);
+                        Pattern.compile(EXPRESSION_ATLAS_FTP_ROOT
+                                + "(experiments/|rnaseq/studies/arrayexpress/)" + ARRAYEXPRESS_ACCESSION_REGEX));
                 get(protocol).get(DB.ExpressionAtlas).put(RegexType.negative,
-                        "/ontology/|/atlas/software/|/gsa/|/atlas/curation/|zoomage_reports|bioentity_properties|atlas/experiments/.*\\.(xml|json|tar\\.gz)");
+                        Pattern.compile("/ontology/|/atlas/software/|/gsa/|/atlas/curation/|zoomage_reports" +
+                                "|bioentity_properties|atlas/experiments/.*\\.(xml|json|tar\\.gz)"));
 
-                get(protocol).get(DB.MetaboLights).put(RegexType.accession, METABOLIGHTS_ACCESSION_REGEX);
-                get(protocol).get(DB.MetaboLights).put(RegexType.positive, "/metabolights/studies/public/" + METABOLIGHTS_ACCESSION_REGEX);
+                get(protocol).get(DB.MetaboLights).put(RegexType.accession,
+                        Pattern.compile(METABOLIGHTS_ACCESSION_REGEX));
+                get(protocol).get(DB.MetaboLights).put(RegexType.positive,
+                        Pattern.compile("/metabolights/studies/public/" + METABOLIGHTS_ACCESSION_REGEX));
                 get(protocol).get(DB.MetaboLights).put(RegexType.negative, null);
 
-                get(protocol).get(DB.Pride).put(RegexType.accession, PRIDE_ACCESSION_REGEX);
-                get(protocol).get(DB.Pride).put(RegexType.positive, "/pride/data/archive/\\d{4}/\\d{2}");
+                get(protocol).get(DB.Pride).put(RegexType.accession, Pattern.compile(PRIDE_ACCESSION_REGEX));
+                get(protocol).get(DB.Pride).put(RegexType.positive,
+                        Pattern.compile("/pride/data/archive/\\d{4}/\\d{2}"));
                 get(protocol).get(DB.Pride).put(RegexType.negative, null);
             }
 
             // ftp-specific regexes
-            get(Protocol.ftp).get(DB.ENA).put(RegexType.positive, "/ena/");
+            get(Protocol.ftp).get(DB.ENA).put(RegexType.positive, Pattern.compile("/ena/"));
 
-            get(Protocol.ftp).get(DB.EVA).put(RegexType.accession, EVA_ACCESSION_REGEX);
-            get(Protocol.ftp).get(DB.EVA).put(RegexType.positive, "/eva/(" + EVA_ACCESSION_REGEX + ")");
-            get(Protocol.ftp).get(DB.EVA).put(RegexType.negative, "/eva/ClinVar/");
+            get(Protocol.ftp).get(DB.EVA).put(RegexType.accession, Pattern.compile(EVA_ACCESSION_REGEX));
+            get(Protocol.ftp).get(DB.EVA).put(RegexType.positive,
+                    Pattern.compile("/eva/(" + EVA_ACCESSION_REGEX + ")"));
+            get(Protocol.ftp).get(DB.EVA).put(RegexType.negative, Pattern.compile("/eva/ClinVar/"));
 
             // aspera-specific regexes
-            get(Protocol.aspera).get(DB.ENA).put(RegexType.positive, "/era-pub");
+            get(Protocol.aspera).get(DB.ENA).put(RegexType.positive, Pattern.compile("/era-pub"));
 
+            for (Protocol protocol : Protocol.values()) {
+                for (DB db : DB.values()) {
+                    String original = get(protocol).get(db).get(RegexType.accession).pattern();
+                    get(protocol).get(db).put(RegexType.accessionSpecial, Pattern.compile("/" + original + "[/\\.]"));
+                }
+            }
         }
     };
 
