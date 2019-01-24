@@ -180,8 +180,15 @@ public class ElasticSearchWsClient {
                 // Initialise the search scroll context
                 SearchRequest searchRequest = new SearchRequest(protocolStr + "logs-*");
                 SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-                searchSourceBuilder.query(QueryBuilders.boolQuery()
-                        .must(QueryBuilders.rangeQuery("@timestamp").to(lastDateOfPreviousMonth).from(firstDateOfPreviousMonth)));
+                BoolQueryBuilder builder = QueryBuilders.boolQuery()
+                        .must(QueryBuilders.rangeQuery("@timestamp")
+                                .to(lastDateOfPreviousMonth)
+                                .from(firstDateOfPreviousMonth))
+                        .must(QueryBuilders.existsQuery("source"))
+                        .must(QueryBuilders.existsQuery("uhost"))
+                        .mustNot(QueryBuilders.termQuery("file_size", "0"));
+
+                searchSourceBuilder.query(builder);
                 searchSourceBuilder.size(batchSize);
                 searchRequest.source(searchSourceBuilder);
                 searchRequest.scroll(TimeValue.timeValueMinutes(ElasticSearchWsConfigProd.SCROLL_VALID_PERIOD));
@@ -400,10 +407,6 @@ public class ElasticSearchWsClient {
             String source = k2v.get("source").toString();
             String anonymisedIPAddress = k2v.get("uhost").toString();  // Anonymised IP address
             String filePath = k2v.get("file_name").toString();
-            long fileSize = Long.parseLong(k2v.get("file_size").toString());
-            // Ignore files with 0 download size
-            if (fileSize == 0)
-                continue;
             for (ElasticSearchWsConfigProd.DB db : ElasticSearchWsConfigProd.DB.values()) {
                 Map<ElasticSearchWsConfigProd.RegexType, String> typeToRegex = ElasticSearchWsConfigProd.protocol2DB2Regex.get(protocol).get(db);
                 if (typeToRegex.keySet().isEmpty())
