@@ -46,6 +46,7 @@ public class ElasticSearchWsConfigProd {
     public static final String EXPRESSION_ATLAS_FTP_ROOT = "/pub/databases/(arrayexpress|microarray)/data/atlas/";
     // Regex used for retrieving date string from ftp/aspera log entries
     public static final String YEAR_MONTH_REGEX = "\\d{4}/\\d{2}";
+    public static final String YEAR_MONTH_DATE_REGEX = "\\d{4}/\\d{2}/\\d{2}";
 
     // Data download protocol types
     public enum Protocol {
@@ -106,7 +107,7 @@ public class ElasticSearchWsConfigProd {
     }
 
     // Hashmap for storing regexes
-    public static final Map<Protocol, Map<DB, Map<RegexType, Pattern>>> protocol2DB2Regex
+    public static final Map<Protocol, Map<DB, Map<RegexType, Pattern>>> PROTOCOL_2_DB_2_REGEX
             = new HashMap<Protocol, Map<DB, Map<RegexType, Pattern>>>() {
         {
             // Initialise all sub-maps
@@ -168,6 +169,9 @@ public class ElasticSearchWsConfigProd {
 
             for (Protocol protocol : Protocol.values()) {
                 for (DB db : DB.values()) {
+                    if (!get(protocol).get(db).containsKey(RegexType.accession)) {
+                        continue;
+                    }
                     String original = get(protocol).get(db).get(RegexType.accession).pattern();
                     get(protocol).get(db).put(RegexType.accessionSpecial, Pattern.compile("/" + original + "[/\\.]"));
                 }

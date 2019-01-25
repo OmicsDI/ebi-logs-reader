@@ -2,6 +2,10 @@ package uk.ac.ebi.ddi.downloas.ena;
 
 import uk.ac.ebi.ddi.downloas.logs.ElasticSearchWsConfigProd;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 /**
  * The configuration class for the ENA API client
  *
@@ -18,6 +22,14 @@ public class ENAWsConfigProd {
         this.protocol = protocol;
     }
 
+    public static final Map<AccessionTypes, Pattern> ACCESSION_TYPES_PATTERNS = new HashMap<AccessionTypes, Pattern>() {
+        {
+            for (ENAWsConfigProd.AccessionTypes accType : ENAWsConfigProd.AccessionTypes.values()) {
+                put(accType, Pattern.compile(ENAWsConfigProd.getRegex(accType)));
+            }
+        }
+    };
+
     public ENAWsConfigProd() {
         this("https", "www.ebi.ac.uk/ena/portal/api");
     }
@@ -33,6 +45,10 @@ public class ENAWsConfigProd {
     // Config for different types of ENA accessions
     public enum AccessionTypes {
         study_experiment_run, analysis, submission, assembly, sequence
+    }
+
+    public static Pattern getRegexPattern(AccessionTypes accessionTypes) {
+        return ACCESSION_TYPES_PATTERNS.get(accessionTypes);
     }
 
     /**

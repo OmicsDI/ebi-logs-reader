@@ -6,7 +6,9 @@ import uk.ac.ebi.ddi.downloas.logs.ElasticSearchWsConfigProd;
 
 
 /**
- * A class representing various mappings between non-project ENA accessions and their corresponding ENA project accessions.
+ * A class representing various mappings between non-project ENA accessions
+ *                      and their corresponding ENA project accessions.
+ *
  * @author Robert Petryszak (rpetry)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

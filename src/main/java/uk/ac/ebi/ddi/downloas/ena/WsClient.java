@@ -3,6 +3,7 @@ package uk.ac.ebi.ddi.downloas.ena;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
+import uk.ac.ebi.ddi.downloas.utils.RetryClient;
 
 
 /**
@@ -11,16 +12,17 @@ import org.springframework.web.client.RestTemplate;
  * @author datasome
  */
 
-public class WsClient {
+public class WsClient extends RetryClient {
 
     protected RestTemplate restTemplate;
     protected ENAWsConfigProd config;
 
     /**
      * Default constructor for Archive clients
+     *
      * @param config
      */
-    public WsClient(ENAWsConfigProd config){
+    public WsClient(ENAWsConfigProd config) {
         this.config = config;
         this.restTemplate = new RestTemplate(clientHttpRequestFactory());
     }
