@@ -9,7 +9,8 @@ import java.util.Map;
 
 /**
  * @author datasome
- *         This class contains configuration for accessing file downloads information in Apache access log files, for example for BioModels
+ *         This class contains configuration for accessing file downloads information in Apache access log files,
+ *         for example for BioModels
  */
 
 public class ApacheLogsFileConfigProd {
@@ -24,7 +25,7 @@ public class ApacheLogsFileConfigProd {
         Regex, LogsDir
     }
 
-    public static final Map<DB, Map<FIELD, String>> db2Regex = new HashMap<DB, Map<FIELD, String>>() {
+    public static final Map<DB, Map<FIELD, String>> DB_2_REGEX = new HashMap<DB, Map<FIELD, String>>() {
         {
             // Initialise all sub-maps
             for (DB db : DB.values()) {
@@ -32,7 +33,10 @@ public class ApacheLogsFileConfigProd {
             }
 
             get(DB.BioModels).put(FIELD.Regex, "download\\/MODEL\\d+.*?\\&");
-            get(DB.BioModels).put(FIELD.LogsDir, File.separator + Joiner.on(File.separator).join(Arrays.asList("nfs","public","rw","webadmin","tomcat","bases","biomodels.net","tc-pst-biomodels_jummp_staging","logs","ves-hx-4b")));
+            get(DB.BioModels).put(FIELD.LogsDir, File.separator + Joiner.on(File.separator)
+                    .join(Arrays.asList(
+                            "nfs", "public", "rw", "webadmin", "tomcat", "bases", "biomodels.net",
+                            "tc-pst-biomodels_jummp_staging", "logs", "ves-hx-4b")));
         }
     };
 

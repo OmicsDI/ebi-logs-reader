@@ -30,6 +30,8 @@
         <ehcache-core.version>2.5.1</ehcache-core.version>
         <aspectjrt.version>1.6.10</aspectjrt.version>
         <standard.version>1.1.2</standard.version>
+        <maven.checkstyle.version>2.17</maven.checkstyle.version>
+        <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
     </properties>
 
     <dependencies>
@@ -161,6 +163,24 @@
                     <skipTests>true</skipTests>
                     <junitArtifactName>junit:junit</junitArtifactName>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven.checkstyle.version}</version>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <failOnViolation>true</failOnViolation>
+                            <consoleOutput>true</consoleOutput>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

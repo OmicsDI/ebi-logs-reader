@@ -25,7 +25,7 @@ public class ENAWsClient extends WsClient {
     private ENAWsConfigProd config;
 
     // A cache of all the mapping between non-project ENA accessions and their corresponding project accessions
-    private static final Map<String, String> enaAccessionToProject = new ConcurrentHashMap<>();
+    private static final Map<String, String> ENA_ACCESSION_TO_PROJECT = new ConcurrentHashMap<>();
 
     private Pattern enaPattern = Pattern.compile(ElasticSearchWsConfigProd.ENA_PRJ_ACCESSION_REGEX);
 
@@ -43,7 +43,7 @@ public class ENAWsClient extends WsClient {
     }
 
     /**
-     * Populate enaAccessionToProject cache if it has not yet been populated
+     * Populate ENA_ACCESSION_TO_PROJECT cache if it has not yet been populated
      */
     public void populateCache() {
         long startTime = System.currentTimeMillis();
@@ -72,11 +72,11 @@ public class ENAWsClient extends WsClient {
                 String accessionInCache = accType == ENAWsConfigProd.AccessionTypes.sequence
                         ? pAcc.getAccession(accType).replace(ENAWsConfigProd.getLookupPostfix(accType), "")
                         : pAcc.getAccession(accType);
-                enaAccessionToProject.put(accessionInCache, pAcc.getProjectAccession());
+                ENA_ACCESSION_TO_PROJECT.put(accessionInCache, pAcc.getProjectAccession());
             }
         }
         long estimatedTime = (System.currentTimeMillis() - startTime) / 1000; // secs
-        LOGGER.info("enaAccessionToProject cache initialised in: " + estimatedTime + " secs");
+        LOGGER.info("ENA_ACCESSION_TO_PROJECT cache initialised in: " + estimatedTime + " secs");
     }
 
     /**
@@ -88,15 +88,15 @@ public class ENAWsClient extends WsClient {
             return null;
         }
 
-        if (enaAccessionToProject.containsKey(enaAccession)) {
-            if (enaAccessionToProject.get(enaAccession).equals(NULL_VALUE)) {
+        if (ENA_ACCESSION_TO_PROJECT.containsKey(enaAccession)) {
+            if (ENA_ACCESSION_TO_PROJECT.get(enaAccession).equals(NULL_VALUE)) {
                 return null;
             }
-            return enaAccessionToProject.get(enaAccession);
+            return ENA_ACCESSION_TO_PROJECT.get(enaAccession);
         } else {
             Matcher mPRJ = enaPattern.matcher(enaAccession);
             if (mPRJ.matches()) {
-                enaAccessionToProject.put(enaAccession, enaAccession);
+                ENA_ACCESSION_TO_PROJECT.put(enaAccession, enaAccession);
                 return enaAccession;
             }
         }
@@ -132,9 +132,9 @@ public class ENAWsClient extends WsClient {
                     ctx -> restTemplate.getForObject(uri, ENAProjectAccessionMapping[].class));
             if (results != null && results.length > 0) {
                 projectAccession = results[0].getProjectAccession();
-                enaAccessionToProject.put(enaAccession, projectAccession);
+                ENA_ACCESSION_TO_PROJECT.put(enaAccession, projectAccession);
             } else {
-                enaAccessionToProject.put(enaAccession, NULL_VALUE);
+                ENA_ACCESSION_TO_PROJECT.put(enaAccession, NULL_VALUE);
             }
             return projectAccession;
         }

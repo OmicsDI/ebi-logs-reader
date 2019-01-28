@@ -1,25 +1,26 @@
 package uk.ac.ebi.ddi.downloas.logs;
 
 
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
  * @author Robert Petryszak rpetry
- *         This class contains configuration for accessing ElasticSearch behind Kibana, where both ftp and Aspera data download logs are stored.
+ * This class contains configuration for accessing ElasticSearch behind Kibana,
+ * where both ftp and Aspera data download logs are stored.
  */
 public class ElasticSearchWsConfigProd {
 
     public Integer port;
-    public String  host;
-    public String  username;
-    public String  password;
+    public String host;
+    public String username;
+    public String password;
 
     // ElasticSearch query-related constants
     public static final Long SCROLL_VALID_PERIOD = 1440L; // 24h
-    public static final int DEFAULT_QUERY_BATCH_SIZE = 10000; // records - this is also the maximum batch size for ElasticSearch queries
+    public static final int DEFAULT_QUERY_BATCH_SIZE = 10000; // records - this is also the maximum batch size
+    // for ElasticSearch queries
     public static final int DEFAULT_PROGRESS_REPORTING_FREQ = 500000; // records
     // C.f. info on timeouts in https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_timeouts.html
     public static final int MAX_RETRY_TIMEOUT = 300000; // ms = 5 mins (default: 30s)

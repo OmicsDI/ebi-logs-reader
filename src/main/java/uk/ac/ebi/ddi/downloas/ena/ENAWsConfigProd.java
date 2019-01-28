@@ -73,6 +73,8 @@ public class ENAWsConfigProd {
             case sequence:
                 regex = ElasticSearchWsConfigProd.ENA_SEQ_ACCESSION_REGEX;
                 break;
+            default:
+                return null;
         }
         return regex;
     }
@@ -99,6 +101,8 @@ public class ENAWsConfigProd {
             case sequence:
                 retObject = "wgs_set";
                 break;
+            default:
+                return null;
         }
         return retObject;
     }
@@ -125,6 +129,8 @@ public class ENAWsConfigProd {
             case sequence:
                 accField = "accession";
                 break;
+            default:
+                return null;
         }
         return accField;
     }
@@ -140,6 +146,8 @@ public class ENAWsConfigProd {
             case sequence:
                 postfix = "000000";
                 break;
+            default:
+                return null;
         }
         return postfix;
     }

@@ -93,11 +93,11 @@ public class ElasticSearchWsClient {
     }
 
     /**
-     * Return Downloading data of a specific database
+     * Return Downloads data of a specific database
      * @param db
      * @return
      */
-    public Map<String, Map<String, Map<String, Multiset<String>>>> getDownloadingData(ElasticSearchWsConfigProd.DB db) {
+    public Map<String, Map<String, Map<String, Multiset<String>>>> getDownloadsData(ElasticSearchWsConfigProd.DB db) {
         if (DB_DATA.containsKey(db)) {
             return DB_DATA.get(db);
         }
@@ -217,7 +217,7 @@ public class ElasticSearchWsClient {
                 omicsDIAccession = esAccession;
             }
         } else {
-            LOGGER.debug("Failed to retrieve accession from: " + filePath + " - using accession regex: " + accessionRegex);
+            LOGGER.info("Failed to retrieve accession from: {} - using accession regex: " + accessionRegex, filePath);
         }
         return new Tuple<>(omicsDIAccession, fileName);
     }
