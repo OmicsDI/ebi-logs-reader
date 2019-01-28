@@ -3,27 +3,32 @@ package uk.ac.ebi.ddi.downloas.logs;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
 /**
  * @author datasome
- *         This class encapsulates the client functionality for accessing file downloads information from Apache access log files
+ * This class encapsulates the client functionality for accessing file downloads information
+ * from Apache access LOGGER files
  */
 public class ApacheLogsFileClient {
-    private static final org.apache.log4j.Logger log = Logger.getLogger(ApacheLogsFileClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApacheLogsFileClient.class);
     private ApacheLogsFileConfigProd config;
 
     // Hashmap for storing results aggregated by period (yyyy/mm)
-    private static final Map<ApacheLogsFileConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>> dbToAccessionToPeriodToAnonymisedIPAddressToFileName =
+    private static final Map<ApacheLogsFileConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>>
+            DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME =
             new HashMap<ApacheLogsFileConfigProd.DB, Map<String, Map<String, Map<String, Multiset<String>>>>>() {
                 {
                     for (ApacheLogsFileConfigProd.DB db : ApacheLogsFileConfigProd.DB.values()) {
@@ -45,21 +50,26 @@ public class ApacheLogsFileClient {
      * @param db
      * @param accession
      * @return For a given database, dataset accession and a year (represented by yearLocalDate),
-     * return a Map between each Period (yyyy/mm) and a map of anonymised IP addresses pointing Multisets of their corresponding file names/download counts
+     * return a Map between each Period (yyyy/mm) and a map of anonymised IP addresses pointing Multisets
+     * of their corresponding file names/download counts
      */
-    public Map<String, Map<String, Multiset<String>>> getDataDownloads(ApacheLogsFileConfigProd.DB db, String accession) {
+    public Map<String, Map<String, Multiset<String>>> getDataDownloads(ApacheLogsFileConfigProd.DB db,
+                                                                       String accession) {
         Map<String, Map<String, Multiset<String>>> anonymisedIPAddressToFileNames = null;
         retrieveAllDataFromApacheLogs();
-        if (dbToAccessionToPeriodToAnonymisedIPAddressToFileName.containsKey(db)) {
+        if (DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.containsKey(db)) {
             Map<String, Map<String, Map<String, Multiset<String>>>> accessionToPeriodToAnonymisedIPAddressToFileName =
-                    dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db);
+                    DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db);
             if (accessionToPeriodToAnonymisedIPAddressToFileName.containsKey(accession)) {
-                anonymisedIPAddressToFileNames = dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession);
+                anonymisedIPAddressToFileNames =
+                        DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db).get(accession);
             } else {
-                log.warn("No accession: '" + accession + "' could be found in the data retrieved for db: '" + db.toString() + "'from Apache access log files");
+                LOGGER.warn("No accession: '" + accession + "' could be found in the data retrieved for db: '"
+                        + db.toString() + "'from Apache access LOGGER files");
             }
         } else {
-            log.warn("No db: '" + db.toString() + "' could be found in the data retrieved from Apache access log files");
+            LOGGER.warn("No db: '" + db.toString()
+                    + "' could be found in the data retrieved from Apache access LOGGER files");
         }
         return anonymisedIPAddressToFileNames;
     }
@@ -69,31 +79,33 @@ public class ApacheLogsFileClient {
      */
     private boolean resultsReady() {
         boolean resultsReady = true;
-        for (ApacheLogsFileConfigProd.DB db : dbToAccessionToPeriodToAnonymisedIPAddressToFileName.keySet()) {
-            resultsReady = !dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).isEmpty();
-            Map<String, Map<String, Map<String, Multiset<String>>>> tst = dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db);
-            if (!resultsReady)
+        for (ApacheLogsFileConfigProd.DB db :
+                DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.keySet()) {
+            resultsReady = !DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db).isEmpty();
+            if (!resultsReady) {
                 break;
+            }
         }
         return resultsReady;
     }
 
     /**
-     * Function to retrieve all relevant data download entries for the current year from Apache access log files,
+     * Function to retrieve all relevant data download entries for the current year from Apache access LOGGER files,
      * and aggregate them in the static dbToAccessionToPeriodToFileName data structure
-     *
      */
     private void retrieveAllDataFromApacheLogs() {
         if (!resultsReady()) {
             for (ApacheLogsFileConfigProd.DB db : ApacheLogsFileConfigProd.DB.values()) {
-                String pattern = ApacheLogsFileConfigProd.db2Regex.get(db).get(ApacheLogsFileConfigProd.FIELD.Regex);
+                String pattern = ApacheLogsFileConfigProd.DB_2_REGEX.get(db).get(ApacheLogsFileConfigProd.FIELD.Regex);
                 Pattern r = Pattern.compile(pattern);
                 int currentYear = Calendar.getInstance().getWeekYear();
-                File path = new File(ApacheLogsFileConfigProd.db2Regex.get(db).get(ApacheLogsFileConfigProd.FIELD.LogsDir));
+                File path = new File(ApacheLogsFileConfigProd.DB_2_REGEX.get(db)
+                        .get(ApacheLogsFileConfigProd.FIELD.LogsDir));
 
                 FilenameFilter filter = new FilenameFilter() {
                     public boolean accept(File directory, String fileName) {
-                        return fileName.matches(ApacheLogsFileConfigProd.LOGFILENAME_PREFIX + currentYear + ApacheLogsFileConfigProd.LOGFILENAME_POSTFIX);
+                        return fileName.matches(ApacheLogsFileConfigProd.LOGFILENAME_PREFIX
+                                + currentYear + ApacheLogsFileConfigProd.LOGFILENAME_POSTFIX);
                     }
                 };
                 File[] files = path.listFiles(filter);
@@ -108,16 +120,15 @@ public class ApacheLogsFileClient {
                                 while (m.find()) {
                                     String anonymisedIPAddress = getMd5(line.split("\\s+")[0]);
                                     String[] downloadPathArr = m.group(0).split("/");
-                                    String[] downloadEntryArr = downloadPathArr[downloadPathArr.length - 1].split("\\?filename=");
+                                    String[] downloadEntryArr =
+                                            downloadPathArr[downloadPathArr.length - 1].split("\\?filename=");
                                     String accession = downloadEntryArr[0].split("\\.")[0];
                                     String fileName = downloadEntryArr[1].split("\\&")[0];
                                     addToResults(db, accession, period, anonymisedIPAddress, fileName);
                                 }
                             }
-                        } catch (FileNotFoundException ex) {
-                            log.error("Exception in retrieving data from Apache access log files for " + db + " : " + ex.getMessage());
                         } catch (IOException ex) {
-                            log.error("Exception in retrieving data from Apache access log files for " + db + " : " + ex.getMessage());
+                            LOGGER.error("Exception occurred, db:  {}", db, ex);
                         }
                     }
                 }
@@ -145,8 +156,9 @@ public class ApacheLogsFileClient {
      * @param fileName
      */
 
-    private static void addToResults(ApacheLogsFileConfigProd.DB db, String accession, String period, String anonymisedIPAddress, String fileName) {
-        if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).containsKey(accession)) {
+    private static void addToResults(ApacheLogsFileConfigProd.DB db, String accession, String period,
+                                     String anonymisedIPAddress, String fileName) {
+        if (!DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db).containsKey(accession)) {
             // We haven't seen this accession before
             Map<String, Map<String, Multiset<String>>> periodToAnonymisedIPAddressToFileNames = new HashMap<>();
             Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
@@ -154,24 +166,30 @@ public class ApacheLogsFileClient {
             anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
             anonymisedIPAddressToFileNames.get(anonymisedIPAddress).add(fileName);
             periodToAnonymisedIPAddressToFileNames.put(period, anonymisedIPAddressToFileNames);
-            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).put(accession, periodToAnonymisedIPAddressToFileNames);
+            DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db)
+                    .put(accession, periodToAnonymisedIPAddressToFileNames);
         } else {
             // We've seen this accession before
-            if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).containsKey(period)) {
+            if (!DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db)
+                    .get(accession).containsKey(period)) {
                 // We haven't seen this period for this accession before
                 Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
                 anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
-                dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(period, anonymisedIPAddressToFileNames);
+                DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db).get(accession)
+                        .put(period, anonymisedIPAddressToFileNames);
             } else {
                 // We have seen this period for this accession before
-                if (!dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).containsKey(anonymisedIPAddress)) {
+                if (!DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db).get(accession)
+                        .get(period).containsKey(anonymisedIPAddress)) {
                     // We haven't seen this anonymisedIPAddress for that accession and period before
                     Map<String, Multiset<String>> anonymisedIPAddressToFileNames = new HashMap<>();
                     anonymisedIPAddressToFileNames.put(anonymisedIPAddress, HashMultiset.<String>create());
-                    dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).put(period, anonymisedIPAddressToFileNames);
+                    DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db)
+                            .get(accession).put(period, anonymisedIPAddressToFileNames);
                 }
             }
-            dbToAccessionToPeriodToAnonymisedIPAddressToFileName.get(db).get(accession).get(period).get(anonymisedIPAddress).add(fileName);
+            DB_TO_ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME.get(db).get(accession)
+                    .get(period).get(anonymisedIPAddress).add(fileName);
         }
     }
 
@@ -200,10 +218,7 @@ public class ApacheLogsFileClient {
                 hashtext = "0" + hashtext;
             }
             return hashtext;
-        }
-
-        // For specifying wrong message digest algorithms
-        catch (NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }

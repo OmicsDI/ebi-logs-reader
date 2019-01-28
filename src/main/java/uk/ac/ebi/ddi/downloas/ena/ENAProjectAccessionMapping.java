@@ -2,15 +2,15 @@ package uk.ac.ebi.ddi.downloas.ena;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import uk.ac.ebi.ddi.downloas.logs.ElasticSearchWsConfigProd;
 
 
 /**
- * A class representing various mappings between non-project ENA accessions and their corresponding ENA project accessions.
+ * A class representing various mappings between non-project ENA accessions
+ * and their corresponding ENA project accessions.
+ *
  * @author Robert Petryszak (rpetry)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-
 public class ENAProjectAccessionMapping {
 
     @JsonProperty("study_accession")
@@ -44,6 +44,8 @@ public class ENAProjectAccessionMapping {
             case sequence:
                 retAcc = accession;
                 break;
+            default:
+                return null;
         }
         return retAcc;
     }

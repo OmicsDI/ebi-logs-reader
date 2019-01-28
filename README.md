@@ -22,12 +22,11 @@ Code:
 ```java
 
     ElasticSearchWsClient elasticSearchClient = new ElasticSearchWsClient(new ElasticSearchWsConfigProd(port,machine,user, port));
-
-    elasticSearchClient.setParallel(true);
-            Map<String, Map<String, Multiset<String>>> prideDownloads =
-                    elasticSearchClient.getDataDownloads(ElasticSearchWsConfigProd.DB.Pride, "PXD000533", LocalDate.now());
-            Assert.assertTrue(prideDownloads.size() > 0);
-        }
+    elasticSearchClient.initialiseData(fromDate, toDate);
+    
+    // ACCESSION_TO_PERIOD_TO_ANONYMISED_IP_ADDRESS_TO_FILE_NAME
+    Map<String, Map<String, Map<String, Multiset<String>>>> dbDownloadInfo
+                                = elasticSearchClient.getDownloadsData(ElasticSearchWsConfigProd.DB.Pride);    
 
 ```
 
