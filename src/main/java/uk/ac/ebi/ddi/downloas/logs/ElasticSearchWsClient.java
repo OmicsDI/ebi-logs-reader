@@ -44,6 +44,8 @@ public class ElasticSearchWsClient {
 
     private RestHighLevelClient restHighLevelClient;
 
+    private static Pattern datePattern = Pattern.compile(ElasticSearchWsConfigProd.YEAR_MONTH_DATE_REGEX);
+
     // Client used for retrieving ENA project accessions corresponding to ENA accessions retrieved from ElasticSearch
     private ENAWsClient enaWsClient = new ENAWsClient(new ENAWsConfigProd());
 
@@ -167,30 +169,14 @@ public class ElasticSearchWsClient {
                         }
                     }
                 }
-                ClearScrollRequest request = new ClearScrollRequest();
-                request.addScrollId(scrollId);
-                restHighLevelClient.clearScroll(request, RequestOptions.DEFAULT);
+//                ClearScrollRequest request = new ClearScrollRequest();
+//                request.addScrollId(scrollId);
+//                restHighLevelClient.clearScroll(request, RequestOptions.DEFAULT);
                 LOGGER.info("Done retrieving {} download data", protocolStr);
             } catch (IOException ioe) {
                 LOGGER.error("Exception occurred, {}", ioe);
             }
         }
-    }
-
-    /**
-     * @param source
-     * @return Date String in format: yyyy/mm/dd retrieved from source
-     */
-    private static String getYearMonthDate(String source) {
-        Matcher matcher = Pattern.compile(ElasticSearchWsConfigProd.YEAR_MONTH_DATE_REGEX).matcher(source);
-        boolean b = matcher.find();
-        String dateStr = null;
-        if (b) {
-            dateStr = matcher.group(0);
-        } else {
-            LOGGER.error("Failed to retrieve date string from: " + source);
-        }
-        return dateStr;
     }
 
     /**
@@ -273,7 +259,6 @@ public class ElasticSearchWsClient {
                                           ENAWsClient enaWsClient) {
         Arrays.stream(searchHits).parallel().forEach(hit -> {
             Map k2v = hit.getSourceAsMap();
-            String source = k2v.get("source").toString();
             String anonymisedIPAddress = k2v.get("uhost").toString();  // Anonymised IP address
             String filePath = k2v.get("file_name").toString();
             for (ElasticSearchWsConfigProd.DB db : ElasticSearchWsConfigProd.DB.values()) {
@@ -298,11 +283,9 @@ public class ElasticSearchWsClient {
                     String accession = accessionFileName.v1();
                     String fileName = accessionFileName.v2();
                     if (accession != null) {
-                        String yearMonth = getYearMonthDate(source);
-                        if (yearMonth != null) {
-                            addToResults(db, accession, yearMonth, anonymisedIPAddress, fileName);
-                            break;
-                        }
+                        String date = k2v.get("@timestamp").toString().split("\\.")[0];
+                        addToResults(db, accession, date, anonymisedIPAddress, fileName);
+                        break;
                     }
                 }
             }
