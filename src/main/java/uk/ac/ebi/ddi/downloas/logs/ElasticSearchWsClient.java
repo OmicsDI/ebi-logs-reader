@@ -203,7 +203,7 @@ public class ElasticSearchWsClient {
                 omicsDIAccession = esAccession;
             }
         } else {
-            LOGGER.info("Failed to retrieve accession from: {} - using accession regex: " + accessionRegex, filePath);
+            LOGGER.debug("Failed to retrieve accession from: {} - using accession regex: " + accessionRegex, filePath);
         }
         return new Tuple<>(omicsDIAccession, fileName);
     }
